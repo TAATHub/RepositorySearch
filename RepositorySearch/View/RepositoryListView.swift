@@ -13,7 +13,6 @@ struct RepositoryListView: View {
     @StateObject private var viewModel = RepositoryListViewModel()
     
     @State private var query = ""
-    @State private var isShowingAlert = false
     
     var body: some View {
         NavigationStack {
@@ -28,10 +27,7 @@ struct RepositoryListView: View {
                 if viewModel.repositories.count >= SearchRepositoryRequest.perPage {
                     Text("loading...")
                         .onAppear {
-                            Task {
-                                let success = await viewModel.fetchAdditionalRepositories(query: query)
-                                isShowingAlert = !success
-                            }
+                            viewModel.onAdditionalLoading(query: query)
                         }
                 }
             }
@@ -42,16 +38,13 @@ struct RepositoryListView: View {
         .searchable(text: $query,
                     placement: .navigationBarDrawer(displayMode: .always))
         .onSubmit(of: .search) {
-            Task {
-                let success = await viewModel.fetchRepositories(query: query)
-                isShowingAlert = !success
-            }
+            viewModel.onSubmitSearch(query: query)
         }
         .onChange(of: query) { newValue in
             viewModel.onChangeQuery(query: query, isSearching: isSearching)
-        }.alert(isPresented: $isShowingAlert) {
+        }.alert(isPresented: $viewModel.showAlert) {
             Alert(title: Text("Error"),
-                  message: Text(viewModel.error?.localizedDescription ?? ""),
+                  message: Text(viewModel.requestError?.localizedDescription ?? ""),
                   dismissButton: .default(Text("OK")))
         }
     }

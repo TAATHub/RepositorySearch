@@ -10,7 +10,8 @@ import Foundation
 @MainActor
 final class RepositoryListViewModel: ObservableObject {
     @Published var repositories: [Repository] = []
-    @Published var error: Error?
+    @Published var requestError: Error?
+    @Published var showAlert = false
     
     private let request = SearchRepositoryRequest()
     
@@ -20,31 +21,28 @@ final class RepositoryListViewModel: ObservableObject {
         }
     }
     
-    /// Fetch Github repositories.
-    /// - Parameter query string
-    /// - Returns: success / fail
-    func fetchRepositories(query: String) async -> Bool {
-        do {
-            repositories = []
-            repositories = try await request.fetchRepositories(query: query)
-            return true
-        } catch(let error) {
-            self.error = error
-            return false
+    func onSubmitSearch(query: String) {
+        repositories = []
+        
+        Task {
+            do {
+                repositories = try await request.fetchRepositories(query: query)
+            } catch (let error) {
+                requestError = error
+                showAlert = true
+            }
         }
     }
     
-    /// リポジトリを追加検索する
-    /// - Parameter query string
-    /// - Returns: success / fail
-    func fetchAdditionalRepositories(query: String) async -> Bool {
-        do {
-            let page = Int(repositories.count / SearchRepositoryRequest.perPage) + 1
-            repositories += try await request.fetchRepositories(query: query, page: page)
-            return true
-        } catch(let error) {
-            self.error = error
-            return false
+    func onAdditionalLoading(query: String) {        
+        Task {
+            do {
+                let page = Int(repositories.count / SearchRepositoryRequest.perPage) + 1
+                repositories += try await request.fetchRepositories(query: query, page: page)
+            } catch (let error) {
+                requestError = error
+                showAlert = true
+            }
         }
     }
 }
