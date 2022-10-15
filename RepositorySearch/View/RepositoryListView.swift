@@ -10,9 +10,13 @@ import SwiftUI
 struct RepositoryListView: View {
     @Environment(\.isSearching) var isSearching
     
-    @StateObject private var viewModel = RepositoryListViewModel()
+    @StateObject private var viewModel: RepositoryListViewModel
     
     @State private var query = ""
+    
+    init(viewModel: RepositoryListViewModel) {
+        _viewModel = StateObject(wrappedValue: viewModel)
+    }
     
     var body: some View {
         NavigationStack {

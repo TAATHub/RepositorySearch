@@ -9,8 +9,8 @@ import Foundation
 
 @MainActor
 final class RepositoryListViewModel: ObservableObject {
-    @Published var repositories: [Repository] = []
-    @Published var requestError: Error?
+    @Published private (set) var repositories: [Repository] = []
+    @Published private (set) var requestError: Error?
     @Published var showAlert = false
     
     private let request = SearchRepositoryRequest()
