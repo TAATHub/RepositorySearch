@@ -6,33 +6,19 @@
 //
 
 import Foundation
+import Alamofire
 
 final class SearchRepositoryRequest {
     static let perPage = 50
     
     func fetchRepositories(query: String, page: Int = 1) async throws -> [Repository] {
-        // リポジトリ名で検索
-        // note: スター数が多い順、1ページごとに50個まで
-        guard let url = URL(string: "https://api.github.com/search/repositories?q=\(query)+in:name&sort=stars&per_page=\(SearchRepositoryRequest.perPage)&page=\(page)") else {
-            // URLが無効な場合
-            throw APIError.invalidUrl
-        }
-        
-        // リクエストを行う
-        let (data, response) = try await URLSession.shared.data(from: url)
-        
-        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-            // ステータスコードが200以外の場合
-            throw APIError.unknownError
-        }
-        
-        var result: RepositorySearchResult
+        let url = "https://api.github.com/search/repositories?q=\(query)+in:name&sort=stars&per_page=\(SearchRepositoryRequest.perPage)&page=\(page)"
+        let result: RepositorySearchResult
         
         do {
-            result = try JSONDecoder().decode(RepositorySearchResult.self, from: data)
+            result = try await AF.request(url).response()
         } catch {
-            // JSONパースできなかった場合
-            throw APIError.jsonParseError
+            throw APIError.unknownError
         }
         
         if result.items.count == 0 {
