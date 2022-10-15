@@ -8,7 +8,18 @@
 import Foundation
 
 @MainActor
-final class RepositoryListViewModel: ObservableObject {
+protocol RepositoryListViewModelProtocol: ObservableObject {
+    var repositories: [Repository] { get }
+    var requestError: Error? { get }
+    var showAlert: Bool { get set }
+    
+    func onChangeQuery(query: String, isSearching: Bool)
+    func onSubmitSearch(query: String)
+    func onAdditionalLoading(query: String)
+}
+
+@MainActor
+final class RepositoryListViewModel: RepositoryListViewModelProtocol {
     @Published private (set) var repositories: [Repository] = []
     @Published private (set) var requestError: Error?
     @Published var showAlert = false
