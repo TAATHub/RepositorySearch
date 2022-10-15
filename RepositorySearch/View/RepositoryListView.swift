@@ -7,14 +7,12 @@
 
 import SwiftUI
 
-struct RepositoryListView: View {
+struct RepositoryListView<ViewModel: RepositoryListViewModelProtocol>: View {
     @Environment(\.isSearching) var isSearching
-    
-    @StateObject private var viewModel: RepositoryListViewModel
-    
+    @StateObject var viewModel: ViewModel
     @State private var query = ""
     
-    init(viewModel: RepositoryListViewModel) {
+    init(viewModel: ViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
     }
     
