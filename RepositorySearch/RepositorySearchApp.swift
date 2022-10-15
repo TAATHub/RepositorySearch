@@ -11,7 +11,7 @@ import SwiftUI
 struct RepositorySearchApp: App {
     var body: some Scene {
         WindowGroup {
-            RepositoryListView()
+            RepositoryListView(viewModel: RepositoryListViewModel())
         }
     }
 }
