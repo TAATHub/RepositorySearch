@@ -6,40 +6,42 @@
 //
 
 import Foundation
+import Alamofire
 
 final class SearchRepositoryRequest {
     static let perPage = 50
     
     func fetchRepositories(query: String, page: Int = 1) async throws -> [Repository] {
-        // リポジトリ名で検索
-        // note: スター数が多い順、1ページごとに50個まで
-        guard let url = URL(string: "https://api.github.com/search/repositories?q=\(query)+in:name&sort=stars&per_page=\(SearchRepositoryRequest.perPage)&page=\(page)") else {
-            // URLが無効な場合
-            throw APIError.invalidUrl
+        let url = "https://api.github.com/search/repositories?q=\(query)+in:name&sort=stars&per_page=\(SearchRepositoryRequest.perPage)&page=\(page)"
+        
+        return try await withCheckedThrowingContinuation{ continuation in
+            AF.request(url).response { response in
+                if response.response?.statusCode != 200 {
+                    // ステータスコードが200以外の場合
+                    continuation.resume(throwing: APIError.unknownError)
+                    return
+                }
+                
+                switch response.result {
+                case .success(let data):
+                    do {
+                        let searchResult = try JSONDecoder().decode(RepositorySearchResult.self, from: data!)
+                        
+                        if searchResult.items.count == 0 {
+                            // レスポンスが空の場合
+                            continuation.resume(throwing: APIError.notFound)
+                            return
+                        }
+                        
+                        continuation.resume(returning: searchResult.items)
+                    } catch {
+                        // JSONパースできなかった場合
+                        continuation.resume(throwing: APIError.jsonParseError)
+                    }
+                case .failure(_):
+                    continuation.resume(throwing: APIError.unknownError)
+                }
+            }
         }
-        
-        // リクエストを行う
-        let (data, response) = try await URLSession.shared.data(from: url)
-        
-        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-            // ステータスコードが200以外の場合
-            throw APIError.unknownError
-        }
-        
-        var result: RepositorySearchResult
-        
-        do {
-            result = try JSONDecoder().decode(RepositorySearchResult.self, from: data)
-        } catch {
-            // JSONパースできなかった場合
-            throw APIError.jsonParseError
-        }
-        
-        if result.items.count == 0 {
-            // レスポンスが空の場合
-            throw APIError.notFound
-        }
-        
-        return result.items
     }
 }
