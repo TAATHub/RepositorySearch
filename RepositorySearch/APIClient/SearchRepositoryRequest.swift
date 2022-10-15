@@ -13,35 +13,19 @@ final class SearchRepositoryRequest {
     
     func fetchRepositories(query: String, page: Int = 1) async throws -> [Repository] {
         let url = "https://api.github.com/search/repositories?q=\(query)+in:name&sort=stars&per_page=\(SearchRepositoryRequest.perPage)&page=\(page)"
+        let result: RepositorySearchResult
         
-        return try await withCheckedThrowingContinuation{ continuation in
-            AF.request(url).response { response in
-                if response.response?.statusCode != 200 {
-                    // ステータスコードが200以外の場合
-                    continuation.resume(throwing: APIError.unknownError)
-                    return
-                }
-                
-                switch response.result {
-                case .success(let data):
-                    do {
-                        let searchResult = try JSONDecoder().decode(RepositorySearchResult.self, from: data!)
-                        
-                        if searchResult.items.count == 0 {
-                            // レスポンスが空の場合
-                            continuation.resume(throwing: APIError.notFound)
-                            return
-                        }
-                        
-                        continuation.resume(returning: searchResult.items)
-                    } catch {
-                        // JSONパースできなかった場合
-                        continuation.resume(throwing: APIError.jsonParseError)
-                    }
-                case .failure(_):
-                    continuation.resume(throwing: APIError.unknownError)
-                }
-            }
+        do {
+            result = try await AF.request(url).response()
+        } catch {
+            throw APIError.unknownError
         }
+        
+        if result.items.count == 0 {
+            // レスポンスが空の場合
+            throw APIError.notFound
+        }
+        
+        return result.items
     }
 }
